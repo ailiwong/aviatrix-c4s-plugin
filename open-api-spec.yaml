@@ -1,0 +1,671 @@
+openapi: 3.0.0
+info:
+  title: Aviatrix
+  version: 1.0.0
+  description: OpenAPI specification for Aviatrix integration with Microsoft CoPilot for Security
+
+servers:
+  - url: https://hxv3n01poe.execute-api.us-east-2.amazonaws.com/prod/
+
+components:
+  parameters:
+    PolicyUuid:
+      name: policyUuid
+      in: query
+      description: UUID of the policy to filter logs
+      required: false
+      schema:
+        type: string
+        format: uuid
+      example: "55d67d48-3ab9-4c66-a391-861b25d5dc45"
+
+    SourceIp:
+      name: sourceIp
+      in: query
+      description: Source IP address to filter logs
+      required: false
+      schema:
+        type: string
+        format: ipv4
+      example: "10.1.0.5"
+
+    DestinationIp:
+      name: destinationIp
+      in: query
+      description: Destination IP address to filter logs
+      required: false
+      schema:
+        type: string
+        format: ipv4
+      example: "20.98.192.20"
+
+    MitmSniHostname:
+      name: mitmSniHostname
+      in: query
+      description: MITM SNI hostname to filter logs
+      required: false
+      schema:
+        type: string
+      example: "eastus2-shared.prod.warm.ingest.monitor.core.windows.net"
+
+    MitmUrl:
+      name: mitmUrl
+      in: query
+      description: MITM URL to filter logs
+      required: false
+      schema:
+        type: string
+        format: uri
+      example: "https://example.com/mitm"
+
+    DestinationPort:
+      name: destinationPort
+      in: query
+      description: Destination port number to filter logs
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 65535
+      example: 443
+
+    Action:
+      name: action
+      in: query
+      description: Action taken (DENY, PERMIT) to filter logs
+      required: false
+      schema:
+        type: string
+        enum:
+          - DENY
+          - PERMIT
+      example: "PERMIT"
+
+    StartTime:
+      name: starttime
+      in: query
+      description: Start time for filtering logs (ISO 8601 format)
+      required: false
+      schema:
+        type: string
+        format: date-time
+      example: "2024-09-27T00:00:00Z"
+
+    EndTime:
+      name: endtime
+      in: query
+      description: End time for filtering logs (ISO 8601 format)
+      required: false
+      schema:
+        type: string
+        format: date-time
+      example: "2024-09-27T23:59:59Z"
+
+  schemas:
+    LogItem:
+      type: object
+      description: Represents a single log entry.
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the log entry.
+          example: "TFnWNZIBUtv8B2cMx-xm"
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the log entry in ISO 8601 format.
+          example: "2024-09-27T23:35:21.000Z"
+        policyUuid:
+          type: string
+          format: uuid
+          description: UUID of the policy applied.
+          example: "55d67d48-3ab9-4c66-a391-861b25d5dc45"
+        sourceIp:
+          type: string
+          format: ipv4
+          description: Source IP address.
+          example: "10.1.0.5"
+        destinationIp:
+          type: string
+          format: ipv4
+          description: Destination IP address.
+          example: "20.98.192.20"
+        protocol:
+          type: string
+          description: Network protocol used (e.g., TCP, UDP).
+          enum:
+            - TCP
+            - UDP
+            - ICMP
+          example: "TCP"
+        sourcePort:
+          type: integer
+          format: int32
+          description: Source port number.
+          example: 51328
+        destinationPort:
+          type: integer
+          format: int32
+          description: Destination port number.
+          example: 443
+        gatewayHostname:
+          type: string
+          description: Hostname of the gateway.
+          example: "AVX-AVD"
+        action:
+          type: string
+          description: Action taken (e.g., ALLOW, DENY, PERMIT).
+          enum:
+            - ALLOW
+            - DENY
+            - PERMIT
+          example: "PERMIT"
+        isEnforced:
+          type: boolean
+          description: Indicates if the action was enforced.
+          example: true
+        tags:
+          type: array
+          description: Tags associated with the log entry.
+          items:
+            type: string
+            example: "mitm"
+          example:
+            - "mitm"
+            - "microseg"
+        mitmSniHostname:
+          type: string
+          description: MITM SNI hostname.
+          example: "eastus2-shared.prod.warm.ingest.monitor.core.windows.net"
+        _searchAfter:
+          type: array
+          description: Cursor for pagination.
+          items:
+            type: integer
+            example: 1727480121000
+          example:
+            - 1727480121000
+      required:
+        - id
+        - timestamp
+        - policyUuid
+        - sourceIp
+        - destinationIp
+        - protocol
+        - sourcePort
+        - destinationPort
+        - gatewayHostname
+        - action
+        - isEnforced
+        - tags
+        - mitmSniHostname
+        - _searchAfter
+
+    LogList:
+      type: object
+      description: Represents a list of log entries.
+      properties:
+        items:
+          type: array
+          description: Array of log entries.
+          items:
+            $ref: '#/components/schemas/LogItem'
+          example:
+            - id: "TFnWNZIBUtv8B2cMx-xm"
+              timestamp: "2024-09-27T23:35:21.000Z"
+              policyUuid: "55d67d48-3ab9-4c66-a391-861b25d5dc45"
+              sourceIp: "10.1.0.5"
+              destinationIp: "20.98.192.20"
+              protocol: "TCP"
+              sourcePort: 51328
+              destinationPort: 443
+              gatewayHostname: "AVX-AVD"
+              action: "PERMIT"
+              isEnforced: true
+              tags:
+                - "mitm"
+                - "microseg"
+              mitmSniHostname: "eastus2-shared.prod.warm.ingest.monitor.core.windows.net"
+              _searchAfter:
+                - 1727480121000
+            - id: "R1nWNZIBUtv8B2cMr-zy"
+              timestamp: "2024-09-27T23:35:15.000Z"
+              policyUuid: "55d67d48-3ab9-4c66-a391-861b25d5dc45"
+              sourceIp: "10.1.0.5"
+              destinationIp: "20.98.192.20"
+              protocol: "TCP"
+              sourcePort: 51326
+              destinationPort: 443
+              gatewayHostname: "AVX-AVD"
+              action: "PERMIT"
+              isEnforced: true
+              tags:
+                - "mitm"
+                - "microseg"
+              mitmSniHostname: "eastus2-shared.prod.warm.ingest.monitor.core.windows.net"
+              _searchAfter:
+                - 1727480115000
+      required:
+        - items
+
+    LogCount:
+      type: object
+      description: Represents the total count of log entries matching the criteria.
+      properties:
+        total:
+          type: integer
+          format: int32
+          description: Total number of log entries.
+          example: 4405
+      required:
+        - total
+
+    Error:
+      type: object
+      description: Represents an error response.
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: Error code.
+          example: 400
+        message:
+          type: string
+          description: Error message.
+          example: "Invalid query parameter: sourceIp"
+        details:
+          type: string
+          description: Additional details about the error.
+          example: "The sourceIp parameter must be a valid IPv4 address."
+      required:
+        - code
+        - message
+      # 'details' can be optional if not always provided
+
+
+paths:
+  /smartgroups:
+    get:
+      operationId: getSmartGroups
+      summary: List SmartGroups
+      description: Retrieve a list of SmartGroups. A SmartGroup matches traffic against a set of IP addresses or attributes. The matching criteria can include CIDR blocks or resource types such as VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
+      tags:
+        - SmartGroups
+      responses:
+        200:
+          description: List of SmartGroups retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    uuid:
+                      type: string
+                      description: The unique identifier of the SmartGroup.
+                      example: "def000ad-0000-0000-0000-000000000000"
+                    name:
+                      type: string
+                      description: The name of the SmartGroup.
+                      example: "avtx_system_v4_wildcard_app_domain"
+                    selector:
+                      type: object
+                      description: Criteria used to match traffic based on IP addresses or resource attributes.
+                      properties:
+                        any:
+                          type: array
+                          description: Specifies a list of conditions. Traffic matching **any** of these conditions will be selected.
+                          items:
+                            type: object
+                            properties:
+                              all:
+                                type: object
+                                description: Specifies the conditions that must all be met for traffic to be selected.
+                                properties:
+                                  cidr:
+                                    type: string
+                                    description: A CIDR block used to match traffic based on IP addresses.
+                                    example: "192.168.1.0/24"
+                                  typed:
+                                    type: object
+                                    description: A typed match criteria for resources such as VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
+                                    properties:
+                                      name:
+                                        type: string
+                                        description: The name of the resource (e.g., VM, VPC, subnet, or S2C).
+                                        example: "azure-vdi-vnet"
+                                      type:
+                                        type: string
+                                        description: The type of resource to match. Possible values are `vm`, `vpc`, `subnet`, or `s2c` (Aviatrix Site2Cloud).
+                                        enum:
+                                          - vm
+                                          - vpc
+                                          - subnet
+                                          - s2c
+                                        example: "vpc"
+                                      region:
+                                        type: string
+                                        description: The region of the resource, if applicable (e.g., for VMs or VPCs).
+                                        example: "westus2"
+                    system_resource:
+                      type: boolean
+                      description: Indicates whether the SmartGroup is a system-defined resource.
+                      example: true
+                    desc:
+                      type: string
+                      description: An optional description of the SmartGroup.
+                      example: "SmartGroup for internet routes."
+
+  /webgroups:
+    get:
+      operationId: getWebGroups
+      summary: List WebGroups
+      description: Retrieve a list of WebGroups. A WebGroup is used to match traffic against a set of IP addresses or attributes. The matching criteria can include CIDR blocks or specific types like VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
+      tags:
+        - WebGroups
+      responses:
+        200:
+          description: List of WebGroups retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    uuid:
+                      type: string
+                      description: The unique identifier of the WebGroup.
+                      example: "def000ad-0000-0000-0000-000000000002"
+                    name:
+                      type: string
+                      description: The name of the WebGroup.
+                      example: "ChatGPT"
+                    selector:
+                      type: object
+                      description: Criteria used to filter traffic. The WebGroup can contain multiple filters applied using an "any" (OR) or "all" (AND) condition.
+                      properties:
+                        any:
+                          type: array
+                          description: Specifies a list of conditions. Traffic matching **any** of these conditions will be selected.
+                          items:
+                            type: object
+                            properties:
+                              all:
+                                type: object
+                                description: Specifies a condition that must be met for traffic to be selected.
+                                properties:
+                                  snifilter:
+                                    type: string
+                                    description: An SNI filter that defines a domain name or wildcard pattern to match traffic based on Server Name Indication (SNI).
+                                    example: "*.chatgpt.com"
+                                  urlfilter:
+                                    type: string
+                                    description: A URL filter that defines a specific URL pattern to match traffic.
+                                    example: "https://www.example.com/resource"
+                    system_resource:
+                      type: boolean
+                      description: Indicates if the WebGroup is a system-defined resource.
+                      example: false
+                    desc:
+                      type: string
+                      description: An optional description of the WebGroup.
+                      example: "A WebGroup for filtering ChatGPT-related traffic."
+
+  /policies:
+    get:
+      operationId: getPolicies
+      summary: Get Distributed Cloud Firewall (DCF) Policy List
+      description: Retrieve a list of firewall policies. A policy is a set of firewall rules that control traffic between source and destination SmartGroups, and optionally through a WebGroup. Policies define actions such as permit or deny, logging, priorities, and other enforcement attributes.
+      tags:
+        - Distributed Cloud Firewall Policy List
+        - Policies
+        - Rules
+        - Rulesets
+      responses:
+        200:
+          description: DCF policy list retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policies:
+                    type: array
+                    description: A list of firewall policies.
+                    items:
+                      type: object
+                      properties:
+                        uuid:
+                          type: string
+                          description: The unique identifier of the policy.
+                          example: "48ff93c9-d493-423d-ab38-2d4b8bebe42e"
+                        name:
+                          type: string
+                          description: The name of the policy, often indicating its purpose.
+                          example: "Block-Threats"
+                        action:
+                          type: string
+                          description: The action to be taken by the policy. Common values are `PERMIT` or `DENY`, which determine whether traffic is allowed or blocked.
+                          enum:
+                            - PERMIT
+                            - DENY
+                          example: "DENY"
+                        src_ads:
+                          type: array
+                          description: A list of source SmartGroup UUIDs. Traffic from these SmartGroups will be evaluated by the policy.
+                          items:
+                            type: string
+                          example: 
+                            - "def000ad-0000-0000-0000-000000000000"
+                        dst_ads:
+                          type: array
+                          description: A list of destination SmartGroup UUIDs. Traffic to these SmartGroups will be evaluated by the policy.
+                          items:
+                            type: string
+                          example:
+                            - "def05854-4100-0000-0000-000000000000"
+                        port_ranges:
+                          type: array
+                          description: A list of port ranges the policy applies to. Each range includes a low and high value to specify a range of ports.
+                          items:
+                            type: object
+                            properties:
+                              lo:
+                                type: integer
+                                description: The lower bound of the port range.
+                                example: 80
+                              hi:
+                                type: integer
+                                description: The upper bound of the port range. A value of `0` indicates a single port.
+                                example: 443
+                          example:
+                            - lo: 80
+                              hi: 0
+                            - lo: 443
+                              hi: 0
+                        protocol:
+                          type: string
+                          description: The protocol this policy applies to. Common values include `TCP`, `UDP`, or `PROTOCOL_UNSPECIFIED` for no specific protocol.
+                          example: "TCP"
+                        priority:
+                          type: integer
+                          description: The priority of the policy. Lower values indicate higher priority (e.g., `0` is the highest priority).
+                          example: 1
+                        logging:
+                          type: boolean
+                          description: Indicates whether traffic that matches this policy should be logged.
+                          example: true
+                        watch:
+                          type: boolean
+                          description: Indicates whether to enable real-time monitoring (watching) of traffic matching this policy.
+                          example: false
+                        web_filters:
+                          type: array
+                          description: A list of WebGroup UUIDs. These WebGroups define additional filtering criteria based on FQDNs or URLs.
+                          items:
+                            type: string
+                          example:
+                            - "def000ad-0000-0000-0000-000000000002"
+                        ruleset:
+                          type: integer
+                          description: The ruleset number the policy belongs to, if applicable.
+                          example: 0
+                        ruleset_name:
+                          type: string
+                          description: The name of the ruleset, if applicable.
+                          example: ""
+                        nested_rules:
+                          type: array
+                          description: A list of nested rules that refine the policy further.
+                          items:
+                            type: object
+                          example: []
+                        flow_app_requirement:
+                          type: string
+                          description: Specifies if the policy requires any specific application-level handling, such as for a particular app or flow. Common values are `APP_UNSPECIFIED` or more specific flow requirements.
+                          example: "APP_UNSPECIFIED"
+                        system_resource:
+                          type: boolean
+                          description: Indicates if the policy is a system-defined policy.
+                          example: false
+                        decrypt_policy:
+                          type: string
+                          description: Specifies how traffic decryption should be handled. Common values include `DECRYPT_UNSPECIFIED`.
+                          example: "DECRYPT_UNSPECIFIED"
+                        desc:
+                          type: string
+                          description: An optional description of the policy.
+                          example: "Policy to block threats."
+                        exclude_sg_orchestration:
+                          type: boolean
+                          description: Indicates whether to exclude this policy from SmartGroup orchestration logic.
+                          example: false
+
+  /logs:
+    get:
+      summary: Retrieve logs based on query parameters
+      description: >
+        Fetch logs filtered by various criteria such as policy UUID, IP addresses, 
+        action taken, and time range.
+      operationId: getLogs
+      tags:
+        - WebGroups
+      parameters:
+        - $ref: '#/components/parameters/PolicyUuid'
+        - $ref: '#/components/parameters/SourceIp'
+        - $ref: '#/components/parameters/DestinationIp'
+        - $ref: '#/components/parameters/MitmSniHostname'
+        - $ref: '#/components/parameters/MitmUrl'
+        - $ref: '#/components/parameters/DestinationPort'
+        - $ref: '#/components/parameters/Action'
+        - $ref: '#/components/parameters/StartTime'
+        - $ref: '#/components/parameters/EndTime'
+      responses:
+        '200':
+          description: A list of logs matching the criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogList'
+              examples:
+                example-1:
+                  value:
+                    items:
+                      - id: "TFnWNZIBUtv8B2cMx-xm"
+                        timestamp: "2024-09-27T23:35:21.000Z"
+                        policyUuid: "55d67d48-3ab9-4c66-a391-861b25d5dc45"
+                        sourceIp: "10.1.0.5"
+                        destinationIp: "20.98.192.20"
+                        protocol: "TCP"
+                        sourcePort: 51328
+                        destinationPort: 443
+                        gatewayHostname: "AVX-AVD"
+                        action: "PERMIT"
+                        isEnforced: true
+                        tags:
+                          - "mitm"
+                          - "microseg"
+                        mitmSniHostname: "eastus2-shared.prod.warm.ingest.monitor.core.windows.net"
+                        _searchAfter:
+                          - 1727480121000
+        '400':
+          description: Bad request due to invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                example-1:
+                  value:
+                    code: 400
+                    message: "Invalid query parameter: sourceIp"
+                    details: "The sourceIp parameter must be a valid IPv4 address."
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                example-1:
+                  value:
+                    code: 500
+                    message: "Internal server error"
+                    details: "An unexpected error occurred while processing your request."
+
+  /logs/count:
+    get:
+      summary: Retrieve the count of logs based on query parameters
+      description: >
+        Fetch the total number of logs filtered by various criteria such as 
+        policy UUID, IP addresses, action taken, and time range.
+      operationId: getLogsCount
+      parameters:
+        - $ref: '#/components/parameters/PolicyUuid'
+        - $ref: '#/components/parameters/SourceIp'
+        - $ref: '#/components/parameters/DestinationIp'
+        - $ref: '#/components/parameters/MitmSniHostname'
+        - $ref: '#/components/parameters/MitmUrl'
+        - $ref: '#/components/parameters/DestinationPort'
+        - $ref: '#/components/parameters/Action'
+        - $ref: '#/components/parameters/StartTime'
+        - $ref: '#/components/parameters/EndTime'
+      responses:
+        '200':
+          description: The total count of logs matching the criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogCount'
+              examples:
+                example-1:
+                  value:
+                    total: 4405
+        '400':
+          description: Bad request due to invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                example-1:
+                  value:
+                    code: 400
+                    message: "Invalid query parameter: sourceIp"
+                    details: "The sourceIp parameter must be a valid IPv4 address."
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                example-1:
+                  value:
+                    code: 500
+                    message: "Internal server error"
+                    details: "An unexpected error occurred while processing your request."
+
