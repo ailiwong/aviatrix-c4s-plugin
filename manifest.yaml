@@ -9,7 +9,7 @@ Descriptor:
     Key: x-avx-auth
     Location: Header
     AuthScheme: ''
-  Icon: https://cmchenry-general-avx.s3.us-east-2.amazonaws.com/avx-logo.png
+  Icon: https://raw.githubusercontent.com/cmchenr/aviatrix-c4s-plugin/refs/heads/main/avx-logo.png
 
 SkillGroups:
   - Format: API
