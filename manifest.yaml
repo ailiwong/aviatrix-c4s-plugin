@@ -14,4 +14,4 @@ Descriptor:
 SkillGroups:
   - Format: API
     Settings:
-      OpenApiSpecUrl: https://cmchenry-general-avx.s3.us-east-2.amazonaws.com/open-api-spec.yaml
+      OpenApiSpecUrl: https://raw.githubusercontent.com/cmchenr/aviatrix-c4s-plugin/refs/heads/main/open-api-spec.yaml
