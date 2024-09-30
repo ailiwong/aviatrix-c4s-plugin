@@ -31,7 +31,7 @@ components:
     PolicyUuid:
       name: policyUuid
       in: query
-      description: UUID of the policy to filter logs
+      description: UUID of the policy to filter logs.  This is generally not interesting to the user, but can be used to correlate logs with policies.  The Name of the policy is more interesting.
       required: false
       schema:
         type: string
@@ -304,7 +304,7 @@ components:
         uuid:
           type: string
           format: uuid
-          description: Unique identifier for the group.
+          description: Unique identifier for the group.  This is generally not interesting to the user, but can be used to correlate groups with policies.  The Name of the group is more interesting.
         name:
           type: string
           description: Name of the group.
