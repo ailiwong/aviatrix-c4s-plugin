@@ -661,7 +661,7 @@ paths:
         action taken, and time range.
       operationId: getLogs
       tags:
-        - WebGroups
+        - Logs
       parameters:
         - $ref: '#/components/parameters/PolicyUuid'
         - $ref: '#/components/parameters/SourceIp'
@@ -731,6 +731,8 @@ paths:
       description: >
         Fetch the total number of logs filtered by various criteria such as 
         policy UUID, IP addresses, action taken, and time range.
+      tags:
+      - Logs
       operationId: getLogsCount
       parameters:
         - $ref: '#/components/parameters/PolicyUuid'
