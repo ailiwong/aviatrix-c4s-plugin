@@ -518,6 +518,7 @@ components:
     # Recommended Action Schema
     RecommendedAction:
       type: object
+      description: These actions recommend next steps including links to the Aviatrix UI for the user to take based on a potential query such as "how can I configure a firewall rule to allow traffic from a specific IP address to a specific port?"
       required:
         - id
         - title
