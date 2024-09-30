@@ -120,6 +120,15 @@ components:
         type: string
         format: date-time
       example: "2024-09-27T23:59:59Z"
+    
+    ActionIDParam:
+      name: actionID
+      in: path
+      description: |
+        The unique identifier of the recommended action.
+      required: true
+      schema:
+        type: string
 
   schemas:
     ErrorResponse:
@@ -506,6 +515,135 @@ components:
       required:
         - any
 
+    # Recommended Action Schema
+    RecommendedAction:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - url
+        - parameters
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the recommended action.
+        title:
+          type: string
+          description: A brief title of the recommended action.
+        description:
+          type: string
+          description: Detailed description of what the recommended action entails.
+        url:
+          type: string
+          description: >
+            The endpoint URL to execute the recommended action. This may include path parameters that need to be replaced with actual values.
+            - **Example**: `"https://{copilot_fqdn}/security/distributed-cloud-firewall/rules/{firewall_rule_id}/edit"`
+          format: uri
+        parameters:
+          type: array
+          description: >
+            A list of query parameters required to execute the recommended action. Each parameter includes its name, description, whether it is required, and its schema.
+          items:
+            $ref: '#/components/schemas/RecommendedActionParameter'
+      example:
+        id: updateFirewallRule
+        title: Update Firewall Rule
+        description: >
+          Update the firewall rule to allow traffic from a specific IP address to a specific port.
+          Firewall rules have the following properties that can be used to take action on traffic flows:
+          source smartgroup, destination smartgroup, destination port, protocol, action (allow/deny), webgroup, enable IDS.
+        url: https://{copilot_fqdn}/security/distributed-cloud-firewall/rules/{firewall_rule_id}/edit
+        parameters:
+          - name: firewall_rule_id
+            description: UUID of the Firewall Rule
+            required: true
+            schema:
+              type: string
+              format: uuid
+
+    RecommendedActionParameter:
+      type: object
+      required:
+        - name
+        - description
+        - required
+        - schema
+      properties:
+        name:
+          type: string
+          description: Name of the query parameter.
+        description:
+          type: string
+          description: Detailed description of what the query parameter represents.
+        required:
+          type: boolean
+          description: Indicates whether the query parameter is mandatory.
+        schema:
+          type: object
+          properties:
+            type:
+              type: string
+              description: Data type of the query parameter.
+              enum:
+                - string
+                - integer
+                - boolean
+                - uuid
+            format:
+              type: string
+              description: |
+                (Optional) The format of the query parameter.
+                - **Example**: `"uuid"` for UUIDs, `"int32"` for 32-bit integers.
+          required:
+            - type
+          additionalProperties: false
+
+    # List of Recommended Actions
+    # Example schema assuming dynamic recommended actions
+    RecommendedActionList:
+      type: array
+      description: A list of all available recommended actions.
+      items:
+        $ref: '#/components/schemas/RecommendedAction'
+      example:
+        - id: updateFirewallRule
+          title: Update Firewall Rule
+          description: >
+            Update the firewall rule to allow traffic from a specific IP address to a specific port.
+            Firewall rules have the following properties that can be used to take action on traffic flows:
+            source smartgroup, destination smartgroup, destination port, protocol, action (allow/deny), webgroup, enable IDS.
+          url: https://{copilot_fqdn}/security/distributed-cloud-firewall/rules/{firewall_rule_id}/edit
+          parameters:
+            - name: firewall_rule_id
+              description: UUID of the Firewall Rule
+              required: true
+              schema:
+                type: string
+                format: uuid
+        - id: createSmartGroup
+          title: Create Smart Group
+          description: >
+            Create a new Smart Group with specified criteria.
+            Smart Groups can filter based on CIDR blocks, resource types, regions, names, and tags.
+          url: https://{copilot_fqdn}/security/distributed-cloud-firewall/groups/create
+          parameters:
+            - name: name
+              description: Name of the Smart Group
+              required: true
+              schema:
+                type: string
+            - name: type
+              description: Type of resources to include in the Smart Group
+              required: true
+              schema:
+                type: string
+                enum:
+                  - vm
+                  - vpc
+                  - subnet
+                  - s2c
+
     Error:
       type: object
       description: Represents an error response.
@@ -820,4 +958,70 @@ paths:
                     code: 500
                     message: "Internal server error"
                     details: "An unexpected error occurred while processing your request."
+  /recommended_actions:
+    get:
+      summary: List Recommended Actions
+      description: |
+        Retrieves a list of all possible recommended actions along with their IDs and required query parameters for generating recommendations.
+        The available actions may be dynamically updated.
+      operationId: listRecommendedActions
+      responses:
+        '200':
+          description: A list of recommended actions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendedActionList'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Recommended Actions
+
+  /recommended_actions/{actionID}:
+    get:
+      summary: Retrieve Specific Recommended Action
+      description: |
+        Retrieves a specific recommended action customized based on the provided query parameters.
+        The required query parameters are defined by the action itself.
+      operationId: getRecommendedAction
+      parameters:
+        - $ref: '#/components/parameters/ActionIDParam'
+        - name: firewall_rule_id
+          in: query
+          description: UUID of the Firewall Rule (required for the `updateFirewallRule` action)
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: A specific recommended action with customized details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendedAction'
+        '400':
+          description: Invalid parameters or action ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Recommended action not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      tags:
+        - Recommended Actions
 
