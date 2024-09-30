@@ -335,54 +335,83 @@ components:
     # SmartGroup Schema
     SmartGroupSelector:
       type: object
+      description: |
+        Selector criteria for SmartGroups. A SmartGroup matches traffic against a set of IP addresses or attributes.
+        The matching criteria can include CIDR blocks, resource types (e.g., VMs, VPCs, subnets, S2C connections),
+        geographic regions, resource names, and associated tags. SmartGroups are Layer 4 constructs used as
+        the source and destination of a firewall policy.
       properties:
-        uuid:
-          type: string
-          description: The unique identifier of the SmartGroup.
-          example: "def000ad-0000-0000-0000-000000000000"
-        name:
-          type: string
-          description: The name of the SmartGroup.
-          example: "avtx_system_v4_wildcard_app_domain"
-        selector:
-          type: object
-          description: Criteria used to match traffic based on IP addresses or resource attributes.
-          properties:
-            any:
-              type: array
-              description: Specifies a list of conditions. Traffic matching **any** of these conditions will be selected.
-              items:
+        any:
+          type: array
+          description: |
+            A list of conditions where **any** one of the conditions must be satisfied (logical OR).
+          items:
+            type: object
+            properties:
+              all:
                 type: object
+                description: |
+                  A set of conditions that must **all** be true simultaneously (logical AND) for this condition to be satisfied.
                 properties:
-                  all:
+                  cidr:
+                    type: string
+                    description: |
+                      **CIDR Block** to match IP addresses.
+                      - **Example**: `"10.3.2.103/32"`
+                    pattern: "^([0-9]{1,3}\\.){3}[0-9]{1,3}/([0-9]|[1-2][0-9]|3[0-2])$"
+                    # CIDR notation: IP address followed by a slash and a prefix length (0-32 for IPv4)
+                  type:
+                    type: string
+                    description: |
+                      **Resource Type** to match.
+                      - **Supported Values**:
+                        - `"vm"`: Virtual Machine
+                        - `"vpc"`: Virtual Private Cloud
+                        - `"subnet"`: Subnetwork
+                        - `"s2c"`: Aviatrix Site2Cloud connections
+                    enum:
+                      - vm
+                      - vpc
+                      - subnet
+                      - s2c
+                  region:
+                    type: string
+                    description: |
+                      **Geographic Region** of the resource.
+                      - **Example**: `"westus2"`
+                      - **Format**: Typically follows cloud provider region naming conventions.
+                  name:
+                    type: string
+                    description: |
+                      **Name** of the resource.
+                      - **Example**: `"avx-avd-0"`, `"k8s-demo-eks-Public-1-us-east-2a"`
+                  tags:
                     type: object
-                    description: Specifies the conditions that must all be met for traffic to be selected.
-                    properties:
-                      cidr:
-                        type: string
-                        description: A CIDR block used to match traffic based on IP addresses.
-                        example: "192.168.1.0/24"
-                      typed:
-                        type: object
-                        description: A typed match criteria for resources such as VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
-                        properties:
-                          name:
-                            type: string
-                            description: The name of the resource (e.g., VM, VPC, subnet, or S2C).
-                            example: "azure-vdi-vnet"
-                          type:
-                            type: string
-                            description: The type of resource to match. Possible values are `vm`, `vpc`, `subnet`, or `s2c` (Aviatrix Site2Cloud).
-                            enum:
-                              - vm
-                              - vpc
-                              - subnet
-                              - s2c
-                            example: "vpc"
-                          region:
-                            type: string
-                            description: The region of the resource, if applicable (e.g., for VMs or VPCs).
-                            example: "westus2"
+                    description: |
+                      **Tags** associated with the resource for filtering. Tags are key-value pairs that help categorize and identify resources.
+                      - **Example**:
+                        ```json
+                        "tags": {
+                          "AVD-Host-Pool": "avx-avd",
+                          "k8s-demo-eks": "subnet3-public",
+                          "Name": "k8s-demo-eks-Public-1-us-east-2a"
+                        }
+                        ```
+                    additionalProperties:
+                      type: string
+                      description: |
+                        The value of the tag. Tags can have arbitrary keys and values.
+                oneOf:
+                  - required:
+                      - cidr
+                  - required:
+                      - type
+                minProperties: 1
+            required:
+              - all
+      required:
+        - any
+
 
     # WebGroup Schema
     WebGroupSelector:
@@ -390,27 +419,39 @@ components:
       properties:
         any:
           type: array
-          description: List of selector conditions.
+          description: |
+            A list of conditions where at least one must be true (logical OR).
           items:
             type: object
             properties:
               all:
                 type: object
-                description: Logical OR conditions specific to WebGroups.
+                description: |
+                  A set of conditions that must all be true (logical AND).
                 properties:
                   snifilter:
                     type: string
-                    description: An SNI filter that defines a domain name or wildcard pattern to match traffic based on Server Name Indication (SNI).
-                    example: "*.chatgpt.com"
+                    description: |
+                      Server Name Indication (SNI) filter to match FQDNs or URLs.
+                      Supports exact matches and wildcard patterns.
+                      Examples:
+                        - "chat.openai.com"
+                        - "*.chatgpt.com"
+                        - "www.chatgpt.com"
+                        - "ai.chatgpg.com"
                   urlfilter:
                     type: string
-                    description: A URL filter that defines a specific URL pattern to match traffic.
-                    example: "https://www.example.com/resource"
-                oneOf:
-                  - required: [snifilter]
-                  - required: [urlfilter]
-      required:
-        - any
+                    description: |
+                      URL filter to match specific URLs.
+                      Supports exact matches and wildcard patterns.
+                      Examples:
+                        - "https://www.example.com/login"
+                        - "https://*.example.com/*"
+                required:
+                  - snifilter
+          required:
+            - any
+
 
     # ExternalThreatGroup Schema
     ExternalThreatGroupSelector:
