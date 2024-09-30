@@ -9,6 +9,25 @@ servers:
 
 components:
   parameters:
+
+    GroupTypeParam:
+      name: type
+      in: query
+      description: |
+        Filter groups by type. Valid values are:
+        - `smartgroup`
+        - `webgroup`
+        - `external_threat`
+        - `external_geo`
+      required: false
+      schema:
+        type: string
+        enum:
+          - smartgroup
+          - webgroup
+          - external_threat
+          - external_geo
+
     PolicyUuid:
       name: policyUuid
       in: query
@@ -103,13 +122,25 @@ components:
       example: "2024-09-27T23:59:59Z"
 
   schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP status code.
+        message:
+          type: string
+          description: Error message detailing the issue.
+      required:
+        - code
+        - message
     LogItem:
       type: object
       description: Represents a single log entry.
       properties:
         id:
           type: string
-          description: Unique identifier for the log entry.
+          description: Unique identifier for the log entry.  This is generally not interesting to the user.
           example: "TFnWNZIBUtv8B2cMx-xm"
         timestamp:
           type: string
@@ -261,6 +292,179 @@ components:
       required:
         - total
 
+    Group:
+      type: object
+      required:
+        - uuid
+        - name
+        - type
+        - selector
+        - system_resource
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unique identifier for the group.
+        name:
+          type: string
+          description: Name of the group.
+        type:
+          type: string
+          description: Type of the group.
+          enum:
+            - smartgroup
+            - webgroup
+            - external_threat
+            - external_geo
+        selector:
+          type: object
+          description: Selector criteria for the group.
+          # Discriminator to determine the specific selector schema based on group type
+          oneOf:
+            - $ref: '#/components/schemas/SmartGroupSelector'
+            - $ref: '#/components/schemas/WebGroupSelector'
+            - $ref: '#/components/schemas/ExternalThreatGroupSelector'
+            - $ref: '#/components/schemas/ExternalGeoGroupSelector'
+        system_resource:
+          type: boolean
+          description: Indicates if the group is a system resource.
+        desc:
+          type: string
+          description: Description of the group.
+
+    # SmartGroup Schema
+    SmartGroupSelector:
+      type: object
+      properties:
+        uuid:
+          type: string
+          description: The unique identifier of the SmartGroup.
+          example: "def000ad-0000-0000-0000-000000000000"
+        name:
+          type: string
+          description: The name of the SmartGroup.
+          example: "avtx_system_v4_wildcard_app_domain"
+        selector:
+          type: object
+          description: Criteria used to match traffic based on IP addresses or resource attributes.
+          properties:
+            any:
+              type: array
+              description: Specifies a list of conditions. Traffic matching **any** of these conditions will be selected.
+              items:
+                type: object
+                properties:
+                  all:
+                    type: object
+                    description: Specifies the conditions that must all be met for traffic to be selected.
+                    properties:
+                      cidr:
+                        type: string
+                        description: A CIDR block used to match traffic based on IP addresses.
+                        example: "192.168.1.0/24"
+                      typed:
+                        type: object
+                        description: A typed match criteria for resources such as VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
+                        properties:
+                          name:
+                            type: string
+                            description: The name of the resource (e.g., VM, VPC, subnet, or S2C).
+                            example: "azure-vdi-vnet"
+                          type:
+                            type: string
+                            description: The type of resource to match. Possible values are `vm`, `vpc`, `subnet`, or `s2c` (Aviatrix Site2Cloud).
+                            enum:
+                              - vm
+                              - vpc
+                              - subnet
+                              - s2c
+                            example: "vpc"
+                          region:
+                            type: string
+                            description: The region of the resource, if applicable (e.g., for VMs or VPCs).
+                            example: "westus2"
+
+    # WebGroup Schema
+    WebGroupSelector:
+      type: object
+      properties:
+        any:
+          type: array
+          description: List of selector conditions.
+          items:
+            type: object
+            properties:
+              all:
+                type: object
+                description: Logical OR conditions specific to WebGroups.
+                properties:
+                  snifilter:
+                    type: string
+                    description: An SNI filter that defines a domain name or wildcard pattern to match traffic based on Server Name Indication (SNI).
+                    example: "*.chatgpt.com"
+                  urlfilter:
+                    type: string
+                    description: A URL filter that defines a specific URL pattern to match traffic.
+                    example: "https://www.example.com/resource"
+                oneOf:
+                  - required: [snifilter]
+                  - required: [urlfilter]
+      required:
+        - any
+
+    # ExternalThreatGroup Schema
+    ExternalThreatGroupSelector:
+      type: object
+      properties:
+        any:
+          type: array
+          description: List of selector conditions.
+          items:
+            type: object
+            properties:
+              all:
+                type: object
+                description: Logical AND conditions specific to External Threat Groups.
+                properties:
+                  external:
+                    type: string
+                    description: External intelligence provider.
+                    enum:
+                      - threatiq
+                required:
+                  - external
+      required:
+        - any
+
+    # ExternalGeoGroup Schema
+    ExternalGeoGroupSelector:
+      type: object
+      properties:
+        any:
+          type: array
+          description: List of selector conditions.
+          items:
+            type: object
+            properties:
+              all:
+                type: object
+                description: Logical AND conditions specific to External Geo Groups.
+                properties:
+                  country_iso_code:
+                    type: string
+                    description: ISO code of the country to match.
+                    pattern: "^[A-Z]{2}$"
+                  external:
+                    type: string
+                    description: External intelligence provider.
+                    enum:
+                      - geo
+                required:
+                  - country_iso_code
+                  - external
+      required:
+        - any
+
     Error:
       type: object
       description: Represents an error response.
@@ -285,134 +489,39 @@ components:
 
 
 paths:
-  /smartgroups:
+  /groups:
     get:
-      operationId: getSmartGroups
-      summary: List SmartGroups
-      description: Retrieve a list of SmartGroups. A SmartGroup matches traffic against a set of IP addresses or attributes. The matching criteria can include CIDR blocks or resource types such as VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
+      summary: Retrieve Firewall Groups
+      description: |
+        Fetches a list of Aviatrix Distributed Cloud firewall groups. You can optionally filter groups by their type.  Groups are used to define the source and destination of traffic that will be evaluated by firewall policies.
+      operationId: getGroups
+      parameters:
+        - $ref: '#/components/parameters/GroupTypeParam'
+      responses:
+        '200':
+          description: A list of firewall groups.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        '400':
+          description: Invalid query parameter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
       tags:
+        - Groups
         - SmartGroups
-      responses:
-        200:
-          description: List of SmartGroups retrieved successfully.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    uuid:
-                      type: string
-                      description: The unique identifier of the SmartGroup.
-                      example: "def000ad-0000-0000-0000-000000000000"
-                    name:
-                      type: string
-                      description: The name of the SmartGroup.
-                      example: "avtx_system_v4_wildcard_app_domain"
-                    selector:
-                      type: object
-                      description: Criteria used to match traffic based on IP addresses or resource attributes.
-                      properties:
-                        any:
-                          type: array
-                          description: Specifies a list of conditions. Traffic matching **any** of these conditions will be selected.
-                          items:
-                            type: object
-                            properties:
-                              all:
-                                type: object
-                                description: Specifies the conditions that must all be met for traffic to be selected.
-                                properties:
-                                  cidr:
-                                    type: string
-                                    description: A CIDR block used to match traffic based on IP addresses.
-                                    example: "192.168.1.0/24"
-                                  typed:
-                                    type: object
-                                    description: A typed match criteria for resources such as VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
-                                    properties:
-                                      name:
-                                        type: string
-                                        description: The name of the resource (e.g., VM, VPC, subnet, or S2C).
-                                        example: "azure-vdi-vnet"
-                                      type:
-                                        type: string
-                                        description: The type of resource to match. Possible values are `vm`, `vpc`, `subnet`, or `s2c` (Aviatrix Site2Cloud).
-                                        enum:
-                                          - vm
-                                          - vpc
-                                          - subnet
-                                          - s2c
-                                        example: "vpc"
-                                      region:
-                                        type: string
-                                        description: The region of the resource, if applicable (e.g., for VMs or VPCs).
-                                        example: "westus2"
-                    system_resource:
-                      type: boolean
-                      description: Indicates whether the SmartGroup is a system-defined resource.
-                      example: true
-                    desc:
-                      type: string
-                      description: An optional description of the SmartGroup.
-                      example: "SmartGroup for internet routes."
-
-  /webgroups:
-    get:
-      operationId: getWebGroups
-      summary: List WebGroups
-      description: Retrieve a list of WebGroups. A WebGroup is used to match traffic against a set of IP addresses or attributes. The matching criteria can include CIDR blocks or specific types like VMs, VPCs, subnets, or Aviatrix Site2Cloud (S2C) connections.
-      tags:
         - WebGroups
-      responses:
-        200:
-          description: List of WebGroups retrieved successfully.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    uuid:
-                      type: string
-                      description: The unique identifier of the WebGroup.
-                      example: "def000ad-0000-0000-0000-000000000002"
-                    name:
-                      type: string
-                      description: The name of the WebGroup.
-                      example: "ChatGPT"
-                    selector:
-                      type: object
-                      description: Criteria used to filter traffic. The WebGroup can contain multiple filters applied using an "any" (OR) or "all" (AND) condition.
-                      properties:
-                        any:
-                          type: array
-                          description: Specifies a list of conditions. Traffic matching **any** of these conditions will be selected.
-                          items:
-                            type: object
-                            properties:
-                              all:
-                                type: object
-                                description: Specifies a condition that must be met for traffic to be selected.
-                                properties:
-                                  snifilter:
-                                    type: string
-                                    description: An SNI filter that defines a domain name or wildcard pattern to match traffic based on Server Name Indication (SNI).
-                                    example: "*.chatgpt.com"
-                                  urlfilter:
-                                    type: string
-                                    description: A URL filter that defines a specific URL pattern to match traffic.
-                                    example: "https://www.example.com/resource"
-                    system_resource:
-                      type: boolean
-                      description: Indicates if the WebGroup is a system-defined resource.
-                      example: false
-                    desc:
-                      type: string
-                      description: An optional description of the WebGroup.
-                      example: "A WebGroup for filtering ChatGPT-related traffic."
 
   /policies:
     get:
