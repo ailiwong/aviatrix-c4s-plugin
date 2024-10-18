@@ -1,10 +1,13 @@
-Descriptor:
+Descriptor: AviatrixPlugin
   Name: AviatrixPlugin
   DisplayName: Aviatrix Security CoPilot Endpoints
   Description: The API plugin to query security related configuration and events from the Aviatrix including Distributed Cloud Firewall Groups and Policies, and Events
+  descriptiondisplay: Aviatrix Security CoPilot Endpoints
   SupportedAuthTypes:
     - Basic
   Icon: https://raw.githubusercontent.com/cmchenr/aviatrix-c4s-plugin/refs/heads/main/avx-logo.png
+  Version: 1.0.0
+
 
 SkillGroups:
   - Format: API
